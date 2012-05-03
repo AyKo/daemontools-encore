@@ -58,3 +58,39 @@ int fmt_human_readable_stamp(char s[TIMESTAMP])
   return len;
 }
 
+/* Timestamp format (selectable) */
+int fmt_timestamp(char s[TIMESTAMP], enum timestamp_kind_t kind)
+{
+  int len = 0;
+  switch (kind) {
+    case FILENAME_FLAG_ACCUSTAMP:
+      len = fmt_accustamp(s);
+      break;
+    case FILENAME_FLAG_HUMAN_READABLE:
+      len = fmt_human_readable_stamp(s);
+      break;
+    case FILENAME_FLAG_TAI64N: /* FALLTHROUGH */
+    default:
+      len = fmt_tai64nstamp(s);
+      break;
+  }
+  return len;
+}
+
+/* Get length of timestamp format */
+int fmt_length(enum timestamp_kind_t kind)
+{
+  static const int len[FILENAME_FLAG_MAX_] = {
+    /*                                    0123456789012345678901234 */
+    25, /* FILENAME_FLAG_TAI64N         : @400000004f9ef20e283a0ebc */
+    17, /* FILENAME_FLAG_ACCUSTAMP      : 1335817091.063697         */
+    22, /* FILENAME_FLAG_HUMAN_READABLE : 20120401T055440.123155    */
+  };
+
+  if (FILENAME_FLAG_TAI64N <= kind && kind <= FILENAME_FLAG_HUMAN_READABLE) {
+    return len[kind];
+  }
+  return len[FILENAME_FLAG_TAI64N];
+}
+
+

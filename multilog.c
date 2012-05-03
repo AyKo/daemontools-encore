@@ -85,10 +85,68 @@ struct cyclog {
   int fddir;
   int fdlock;
   int flagselected;
+  enum timestamp_kind_t flag_filename;
 } *c;
 int cnum;
 
 stralloc fn = {0};
+
+/* Initialize a temporary variable for logfile-name comparison (for filesfit()) */
+void filesfit_init_filename_cmp(const struct cyclog *d)
+{
+  switch (d->flag_filename) {
+    case FILENAME_FLAG_ACCUSTAMP:
+      str_copy(fn.s, "9999999999.999999");
+      break;
+    case FILENAME_FLAG_HUMAN_READABLE:
+      str_copy(fn.s, "99999999T999999.999999");
+      break;
+    case FILENAME_FLAG_TAI64N: /* FALLTHROUGH */
+    default:
+      fn.s[0] = '@';
+      fn.s[1] = 'z';
+      fn.s[2] = 0;
+      break;
+  }
+}
+
+/* Check format string in forward match */
+int checkname(const char* filter, const char* target)
+{
+  for (; *filter && *target ; ++filter, ++target) {
+    switch (*filter) {
+      case '9':
+        if ('0' > *target || *target > '9')
+          return 0;
+        break;
+      default:
+        if (*filter != *target)
+          return 0;
+        break;
+    }
+  }
+  return 1;
+}
+
+/* Check logfile-name in d->flag_filename (for filesfit()) */ 
+int filesfit_check_filename(const struct cyclog *d, const direntry* x)
+{
+  switch (d->flag_filename) {
+    case FILENAME_FLAG_ACCUSTAMP:
+      return checkname("9999999999.999999", x->d_name);
+    case FILENAME_FLAG_HUMAN_READABLE:
+      return checkname("99999999T999999.999999", x->d_name);
+    case FILENAME_FLAG_TAI64N: /* FALLTHROUGH */
+    default:
+      if (x->d_name[0] == '@') {
+        if (str_len(x->d_name) >= 25) {
+          return 1;
+        }
+      }
+      break;
+  }
+  return 0;
+}
 
 int filesfit(struct cyclog *d)
 {
@@ -96,28 +154,26 @@ int filesfit(struct cyclog *d)
   direntry *x;
   int count;
   int i;
+  const unsigned int format_length = fmt_length(d->flag_filename);
 
   dir = opendir(".");
   if (!dir) return -1;
 
-  fn.s[0] = '@';
-  fn.s[1] = 'z';
-  fn.s[2] = 0;
+  filesfit_init_filename_cmp(d);
 
   count = 0;
   for (;;) {
     errno = 0;
     x = readdir(dir);
     if (!x) break;
-    if (x->d_name[0] == '@')
-      if (str_len(x->d_name) >= 25) {
-        ++count;
-        if (str_diff(x->d_name,fn.s) < 0) {
-          for (i = 0;i < 25;++i)
-            fn.s[i] = x->d_name[i];
-          fn.s[25] = 0;
-        }
+    if (filesfit_check_filename(d, x)) {
+      ++count;
+      if (str_diff(x->d_name,fn.s) < 0) {
+        for (i = 0;i < format_length;++i)
+          fn.s[i] = x->d_name[i];
+        fn.s[format_length] = 0;
       }
+    }
   }
   if (errno) { closedir(dir); return -1; }
   closedir(dir);
@@ -131,17 +187,17 @@ int filesfit(struct cyclog *d)
     errno = 0;
     x = readdir(dir);
     if (!x) break;
-    if (x->d_name[0] == '@')
-      if (str_len(x->d_name) >= 25)
-        if (str_start(x->d_name,fn.s)) {
-	  unlink(x->d_name);
-	  break;
-        }
+    if (str_len(x->d_name) >= format_length)
+      if (str_start(x->d_name,fn.s)) {
+        unlink(x->d_name);
+        break;
+      }
   }
   if (errno) { closedir(dir); return -1; }
   closedir(dir);
   return 0;
 }
+
 
 void finish(struct cyclog *d,const char *file,const char *code)
 {
@@ -156,7 +212,7 @@ void finish(struct cyclog *d,const char *file,const char *code)
 
   if (st.st_nlink == 1)
     for (;;) {
-      fnlen = fmt_tai64nstamp(fn.s);
+      fnlen = fmt_timestamp(fn.s, d->flag_filename);
       fn.s[fnlen++] = '.';
       do {
 	fn.s[fnlen++] = *code;
@@ -387,6 +443,7 @@ void c_init(char **script)
   unsigned long num;
   unsigned long size;
   const char *code_finished = "s";
+  enum timestamp_kind_t flag_filename = FILENAME_FLAG_TAI64N;
 
   cnum = 0;
   for (i = 0;script[i];++i)
@@ -400,6 +457,7 @@ void c_init(char **script)
   processor = 0;
   num = 10;
   size = 99999;
+  flag_filename = FILENAME_FLAG_TAI64N;
 
   for (i = 0;script[i];++i)
     if (script[i][0] == 's') {
@@ -419,12 +477,31 @@ void c_init(char **script)
       if (!stralloc_ready(&fn,str_len(code_finished)+TIMESTAMP+1))
 	strerr_die2sys(111,FATAL,"unable to allocate memory: ");
     }
+    else if (script[i][0] == 'f') {
+      /* [filename flag]
+       * t:tai64n stamp (Default)
+       * T:accustamp
+       * h:human-readable stamp (YYYYMMDD-HHMMSS.ssssss) */
+      switch (script[i][1]) {
+        case 'T':
+          flag_filename = FILENAME_FLAG_ACCUSTAMP;
+          break;
+        case 'h':
+          flag_filename = FILENAME_FLAG_HUMAN_READABLE;
+          break;
+        case 't': /* FALLTHROUGH */
+        default:
+          flag_filename = FILENAME_FLAG_TAI64N;
+          break;
+      }
+    } 
     else if ((script[i][0] == '.') || (script[i][0] == '/')) {
       d->num = num;
       d->size = size;
       d->processor = processor;
       d->code_finished = code_finished;
       d->dir = script[i];
+      d->flag_filename = flag_filename;
       buffer_init(&d->ss,c_write,d - c,d->buf,sizeof d->buf);
       restart(d);
       ++d;

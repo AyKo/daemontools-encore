@@ -39,3 +39,8 @@ xxxxxxxxxx.xxxxxx TWO
 --- multilog h has the right format
 YYYYMMDDThhmmss.SSSSSS ONE
 YYYYMMDDThhmmss.SSSSSS TWO
+--- multilog output file name
+default_ok
+ft_ok
+fT_ok
+fh_ok

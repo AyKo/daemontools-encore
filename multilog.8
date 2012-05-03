@@ -105,7 +105,7 @@ For example, the sequence of actions
 
 maintains log/status as a copy of the most recent line starting with STAT. 
 .SH TIMESTAMPING
-The action 
+The action
 .TP
 .B t
 inserts an @, a precise timestamp, and a space in front of each line, using
@@ -148,6 +148,21 @@ with the first * matching the timestamp.
 You can use
 .BR tai64nlocal (8)
 to convert these timestamps to human-readable form.
+.SH FILE NAME
+The action
+.TP
+.B ft
+output file names are set to
+.BR tai64n (8)
+style. For example, output file name is "@400000004fa18db302e8ca04.s".
+.TP
+.B fT
+output file names are set to accustamp style. For example,
+output file name is "1335987625.048810.s".
+.TP
+.B fh
+output file names are set to human-readable style (ISO 8601).
+For example, output file name is "20120403T044025.048810.s".
 .SH AUTOMATICALLY ROTATED LOGS
 If
 .I dir
