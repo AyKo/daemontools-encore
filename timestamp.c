@@ -1,3 +1,6 @@
+#include <stdio.h>
+#include <time.h>
+#include <sys/time.h>
 #include "fmt.h"
 #include "taia.h"
 #include "timestamp.h"
@@ -33,3 +36,25 @@ int fmt_accustamp(char s[TIMESTAMP])
   len += fmt_uint0(s+len,now.nano / 1000,6);
   return len;
 }
+
+/* Timestamp format - Human readable (ISO 8601) */
+int fmt_human_readable_stamp(char s[TIMESTAMP])
+{
+  int len;
+
+  struct timeval now;
+  struct tm nowtm;
+  
+  gettimeofday(&now,(struct timezone *) 0);
+  localtime_r(&now.tv_sec, &nowtm);
+
+  /* 01234567890123456789012345 */
+  /* YYYYMMDDThhmmss.SSSSSS     */
+  /* 20120430T064033.232342     */
+  len = sprintf(s, "%04d%02d%02dT%02d%02d%02d.%06ld",
+      nowtm.tm_year + 1900, nowtm.tm_mon, nowtm.tm_mday,
+      nowtm.tm_hour, nowtm.tm_min, nowtm.tm_sec, now.tv_usec);
+
+  return len;
+}
+

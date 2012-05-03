@@ -41,3 +41,13 @@ uniq -c < test.status | sed 's/[ 	]*[ 	]/_/g'
 
 echo '--- multilog t has the right format'
 ( echo ONE; echo TWO ) | multilog t e 2>&1 | sed 's/[0-9a-f]/x/g'
+
+echo '--- multilog T has the right format'
+# This test does not work only between
+# <Sun Sep 9 10:46:40 2001> and <Sun Nov 21 02:46:39 2286>.
+# (time(3): 1000000000 and 9999999999)
+( echo ONE; echo TWO ) | multilog T e 2>&1 | sed 's/^[0-9]\{10\}\.[0-9]\{6\}/xxxxxxxxxx.xxxxxx/g'
+
+echo '--- multilog h has the right format'
+( echo ONE; echo TWO ) | multilog h e 2>&1 | sed 's/^[0-9]\{8\}T[0-9]\{6\}\.[0-9]\{6\}/YYYYMMDDThhmmss.SSSSSS/g'
+

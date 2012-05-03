@@ -33,3 +33,9 @@ _997_
 --- multilog t has the right format
 @xxxxxxxxxxxxxxxxxxxxxxxx ONE
 @xxxxxxxxxxxxxxxxxxxxxxxx TWO
+--- multilog T has the right format
+xxxxxxxxxx.xxxxxx ONE
+xxxxxxxxxx.xxxxxx TWO
+--- multilog h has the right format
+YYYYMMDDThhmmss.SSSSSS ONE
+YYYYMMDDThhmmss.SSSSSS TWO

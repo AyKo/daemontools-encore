@@ -508,7 +508,7 @@ void doit(char **script)
 
   flagtimestamp = 0;
   if (script[0])
-    if (script[0][0] == 't' || script[0][0] == 'T')
+    if (script[0][0] == 't' || script[0][0] == 'T' || script[0][0] == 'h')
       flagtimestamp = script[0][0];
 
   for (i = 0;i <= 1000;++i) line[i] = '\n';
@@ -527,9 +527,18 @@ void doit(char **script)
       }
       if (!linelen)
         if (flagtimestamp) {
-	  linelen = (flagtimestamp == 't')
-	    ? fmt_tai64nstamp(line)
-	    : fmt_accustamp(line);
+          switch (flagtimestamp) {
+            case 'T':
+              linelen = fmt_accustamp(line);
+              break;
+            case 'h':
+              linelen = fmt_human_readable_stamp(line);
+              break;
+            case 't':   /* FALLTHROUGH */
+            default:
+              linelen = fmt_tai64nstamp(line);
+              break;
+          }
           line[linelen++] = ' ';
         }
       if (ch == '\n')

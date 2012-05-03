@@ -5,5 +5,6 @@
 
 extern int fmt_tai64nstamp(char *);
 extern int fmt_accustamp(char *);
+extern int fmt_human_readable_stamp(char *);
 
 #endif
