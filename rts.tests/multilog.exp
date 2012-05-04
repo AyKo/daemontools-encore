@@ -44,3 +44,5 @@ default_ok
 ft_ok
 fT_ok
 fh_ok
+--- multilog processor ---
+processor_test_ok

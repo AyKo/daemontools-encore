@@ -65,3 +65,9 @@ cat multilog_test_11.txt | multilog ./multilog_output_default fT ./multilog_outp
 [ `/bin/ls multilog_output_fT/*.s      | /bin/grep -E '^multilog_output_fT\/[0-9]{10}\.[0-9]{6}\.s$' | wc -l` -eq 9 ]         && echo fT_ok
 [ `/bin/ls multilog_output_fh/*.s      | /bin/grep -E '^multilog_output_fh\/[0-9]{8}T[0-9]{6}\.[0-9]{6}\.s$' | wc -l` -eq 9 ] && echo fh_ok
 
+echo '--- multilog processor ---'
+( echo '#!/bin/sh'; echo 'tee multilog_processor_test_out.txt' ) > multilog_processor.sh
+chmod +x multilog_processor.sh
+cat multilog_test.txt | multilog !${PWD}/multilog_processor.sh ./multilog_processor_test
+diff multilog_processor_test/multilog_processor_test_out.txt `ls multilog_processor_test/@*` && echo processor_test_ok
+
