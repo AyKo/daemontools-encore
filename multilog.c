@@ -72,6 +72,12 @@ void f_init(char **script)
   }
 }
 
+/* Flag-value of timing to create a log file */
+enum logcreate_timing_t {
+  LOGCREATE_TIMING_LAST,
+  LOGCREATE_TIMING_FIRST,
+};
+
 struct cyclog {
   char buf[512];
   buffer ss;
@@ -86,13 +92,14 @@ struct cyclog {
   int fdlock;
   int flagselected;
   enum timestamp_kind_t flag_filename;
+  enum logcreate_timing_t flag_logcreate_timing;
 } *c;
 int cnum;
 
 stralloc fn = {0};
 
-/* Initialize a temporary variable for logfile-name comparison (for filesfit()) */
-void filesfit_init_filename_cmp(const struct cyclog *d)
+/* Initialize a temporary variable for logfile-name comparison */
+void init_filename_cmp(const struct cyclog *d)
 {
   switch (d->flag_filename) {
     case FILENAME_FLAG_ACCUSTAMP:
@@ -128,8 +135,8 @@ int checkname(const char* filter, const char* target)
   return 1;
 }
 
-/* Check logfile-name in d->flag_filename (for filesfit()) */ 
-int filesfit_check_filename(const struct cyclog *d, const direntry* x)
+/* Check logfile-name in d->flag_filename */ 
+int check_filename(const struct cyclog *d, const direntry* x)
 {
   switch (d->flag_filename) {
     case FILENAME_FLAG_ACCUSTAMP:
@@ -159,14 +166,14 @@ int filesfit(struct cyclog *d)
   dir = opendir(".");
   if (!dir) return -1;
 
-  filesfit_init_filename_cmp(d);
+  init_filename_cmp(d);
 
   count = 0;
   for (;;) {
     errno = 0;
     x = readdir(dir);
     if (!x) break;
-    if (filesfit_check_filename(d, x)) {
+    if (check_filename(d, x)) {
       ++count;
       if (str_diff(x->d_name,fn.s) < 0) {
         for (i = 0;i < format_length;++i)
@@ -198,11 +205,25 @@ int filesfit(struct cyclog *d)
   return 0;
 }
 
+void create_link(struct cyclog *d,const char *file,const char *code)
+{
+  int fnlen;
+
+  for (;;) {
+    fnlen = fmt_timestamp(fn.s, d->flag_filename);
+    fn.s[fnlen++] = '.';
+    do {
+      fn.s[fnlen++] = *code;
+    } while (*code++ != 0);
+
+    if (link(file,fn.s) == 0) break;
+    pause5("unable to link to ",d->dir,"/",fn.s,", pausing: ");
+  }
+}
 
 void finish(struct cyclog *d,const char *file,const char *code)
 {
   struct stat st;
-  int fnlen;
 
   for (;;) {
     if (stat(file,&st) == 0) break;
@@ -210,17 +231,11 @@ void finish(struct cyclog *d,const char *file,const char *code)
     pause5("unable to stat ",d->dir,"/",file,", pausing: ");
   }
 
-  if (st.st_nlink == 1)
-    for (;;) {
-      fnlen = fmt_timestamp(fn.s, d->flag_filename);
-      fn.s[fnlen++] = '.';
-      do {
-	fn.s[fnlen++] = *code;
-      } while (*code++ != 0);
-
-      if (link(file,fn.s) == 0) break;
-      pause5("unable to link to ",d->dir,"/",fn.s,", pausing: ");
+  if (st.st_nlink == 1) {
+    if (d->flag_logcreate_timing == LOGCREATE_TIMING_LAST) {
+      create_link(d,file,code);
     }
+  }
 
   while (unlink(file) == -1)
     pause5("unable to remove ",d->dir,"/",file,", pausing: ");
@@ -279,6 +294,9 @@ void fullcurrent(struct cyclog *d)
     pause3("unable to rename current to previous in directory ",d->dir,", pausing: ");
   while ((d->fdcurrent = open_append("current")) == -1)
     pause3("unable to create ",d->dir,"/current, pausing: ");
+  if (d->flag_logcreate_timing == LOGCREATE_TIMING_FIRST) {
+    create_link(d, "current", "s");
+  }
   closeonexec(d->fdcurrent);
   d->bytes = 0;
   while (fchmod(d->fdcurrent,0644) == -1)
@@ -362,6 +380,39 @@ int c_write(int pos,char *buf,int len)
   return w;
 }
 
+/* Aftertreatment of an outage for the case of "create log file in first".
+ * 
+ * Change ".u" extension of the log file with the i-node equal to the "current" file.
+ */
+void aftertreat_create_of_first(const struct cyclog *d, const struct stat* current_st)
+{
+  DIR *dir;
+  direntry *x;
+
+  if (current_st->st_nlink <= 1)
+    return;
+
+  dir = opendir(".");
+  if (!dir) return;
+
+  for (;;) {
+    x = readdir(dir);
+    if (!x) break;
+    if (check_filename(d, x)) {
+      if (current_st->st_ino == x->d_ino) {
+        unsigned int len = str_len(x->d_name);
+        if ((len > 1) && (x->d_name[len-1] == 's')) { 
+          str_copy(fn.s, x->d_name);
+          fn.s[len-1] = 'u';
+          rename(x->d_name, fn.s);
+        }
+      }
+    }
+  }
+
+  closedir(dir);
+}
+
 void restart(struct cyclog *d)
 {
   struct stat st;
@@ -386,7 +437,7 @@ void restart(struct cyclog *d)
     if (errno != error_noent)
       strerr_die4sys(111,FATAL,"unable to stat ",d->dir,"/current: ");
   }
-  else
+  else {
     if (st.st_mode & 0100) {
       fd = open_append("current");
       if (fd == -1)
@@ -394,10 +445,18 @@ void restart(struct cyclog *d)
       if (fchmod(fd,0644) == -1)
         strerr_die4sys(111,FATAL,"unable to set mode of ",d->dir,"/current: ");
       closeonexec(fd);
+      if (d->flag_logcreate_timing == LOGCREATE_TIMING_FIRST) {
+        if (st.st_nlink == 1)
+          create_link(d, "current", "s");
+      }
       d->fdcurrent = fd;
       d->bytes = st.st_size;
       return;
     }
+    if (d->flag_logcreate_timing == LOGCREATE_TIMING_FIRST) {
+      aftertreat_create_of_first(d, &st);
+    }
+  }
 
   unlink("state");
   unlink("newstate");
@@ -426,6 +485,9 @@ void restart(struct cyclog *d)
     strerr_die4sys(111,FATAL,"unable to write to ",d->dir,"/state: ");
   close(fd);
   fd = open_append("current");
+  if (d->flag_logcreate_timing == LOGCREATE_TIMING_FIRST) {
+    create_link(d, "current", "s");
+  }
   if (fd == -1)
     strerr_die4sys(111,FATAL,"unable to write to ",d->dir,"/current: ");
   if (fchmod(fd,0644) == -1)
@@ -433,6 +495,45 @@ void restart(struct cyclog *d)
   closeonexec(fd);
   d->fdcurrent = fd;
   d->bytes = 0;
+}
+
+/* Analyse output-file flag (for c_init)
+ *
+ * <Filename flag>
+ * t:tai64n stamp (Default)
+ * T:accustamp
+ * h:human-readable stamp (YYYYMMDD-HHMMSS.ssssss)
+ * <Generate timing flag>
+ * r:generate logfile last
+ * R:generate logfile first */
+void c_init_filename(
+  const char* script,
+  enum timestamp_kind_t* flag_filename,
+  enum logcreate_timing_t* flag_logcreate_timing)
+{
+  const char* head = script;
+  for (++script; *script; ++script) {
+    switch (*script) {
+      case 'T':
+        *flag_filename = FILENAME_FLAG_ACCUSTAMP;
+        break;
+      case 'h':
+        *flag_filename = FILENAME_FLAG_HUMAN_READABLE;
+        break;
+      case 't':
+        *flag_filename = FILENAME_FLAG_TAI64N;
+        break;
+      case 'R':
+        *flag_logcreate_timing = LOGCREATE_TIMING_FIRST;
+        break;
+      case 'r':
+        *flag_logcreate_timing = LOGCREATE_TIMING_LAST;
+        break;
+      default:
+        strerr_warn3(WARNING,"output file flag error in ",head,0);
+        break;
+    }
+  }
 }
 
 void c_init(char **script)
@@ -444,6 +545,7 @@ void c_init(char **script)
   unsigned long size;
   const char *code_finished = "s";
   enum timestamp_kind_t flag_filename = FILENAME_FLAG_TAI64N;
+  enum logcreate_timing_t flag_logcreate_timing = LOGCREATE_TIMING_LAST;
 
   cnum = 0;
   for (i = 0;script[i];++i)
@@ -458,6 +560,7 @@ void c_init(char **script)
   num = 10;
   size = 99999;
   flag_filename = FILENAME_FLAG_TAI64N;
+  flag_logcreate_timing = LOGCREATE_TIMING_LAST;
 
   for (i = 0;script[i];++i)
     if (script[i][0] == 's') {
@@ -478,22 +581,7 @@ void c_init(char **script)
 	strerr_die2sys(111,FATAL,"unable to allocate memory: ");
     }
     else if (script[i][0] == 'f') {
-      /* [filename flag]
-       * t:tai64n stamp (Default)
-       * T:accustamp
-       * h:human-readable stamp (YYYYMMDD-HHMMSS.ssssss) */
-      switch (script[i][1]) {
-        case 'T':
-          flag_filename = FILENAME_FLAG_ACCUSTAMP;
-          break;
-        case 'h':
-          flag_filename = FILENAME_FLAG_HUMAN_READABLE;
-          break;
-        case 't': /* FALLTHROUGH */
-        default:
-          flag_filename = FILENAME_FLAG_TAI64N;
-          break;
-      }
+      c_init_filename(script[i], &flag_filename, &flag_logcreate_timing);
     } 
     else if ((script[i][0] == '.') || (script[i][0] == '/')) {
       d->num = num;
@@ -502,9 +590,12 @@ void c_init(char **script)
       d->code_finished = code_finished;
       d->dir = script[i];
       d->flag_filename = flag_filename;
+      d->flag_logcreate_timing = flag_logcreate_timing;
       buffer_init(&d->ss,c_write,d - c,d->buf,sizeof d->buf);
       restart(d);
       ++d;
+      flag_filename = FILENAME_FLAG_TAI64N;
+      flag_logcreate_timing = LOGCREATE_TIMING_LAST;
     }
 }
 

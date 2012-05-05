@@ -44,5 +44,13 @@ default_ok
 ft_ok
 fT_ok
 fh_ok
+--- multilog flag-value of timing to create a log file
+ftR_num_ok
+ftR_inode_ok
+ftR_data_ok
+ftR_num_ok
+ftr_inode_ok
+ftr_data_ok
+ftR_ftr_dot_u_diff_ok
 --- multilog processor ---
 processor_test_ok

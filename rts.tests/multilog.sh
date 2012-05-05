@@ -65,6 +65,30 @@ cat multilog_test_11.txt | multilog ./multilog_output_default fT ./multilog_outp
 [ `/bin/ls multilog_output_fT/*.s      | /bin/grep -E '^multilog_output_fT\/[0-9]{10}\.[0-9]{6}\.s$' | wc -l` -eq 9 ]         && echo fT_ok
 [ `/bin/ls multilog_output_fh/*.s      | /bin/grep -E '^multilog_output_fh\/[0-9]{8}T[0-9]{6}\.[0-9]{6}\.s$' | wc -l` -eq 9 ] && echo fh_ok
 
+echo '--- multilog flag-value of timing to create a log file'
+cat multilog_test.txt | multilog ftR ./multilog_output_timing_ftR ftr ./multilog_output_timing_ftr
+[ `/bin/ls multilog_output_timing_ftR/*.s | /bin/grep -E '^multilog_output_timing_ftR\/@[0-9a-f]{24}\.s$' | wc -l` -eq 2 ] && echo ftR_num_ok
+TARGET_INODE=`ls -i multilog_output_timing_ftR/*.s | tail -1 | cut -d ' ' -f 1`
+CURRENT_INODE=`ls -i multilog_output_timing_ftR/current | cut -d ' ' -f 1`
+[ $TARGET_INODE -eq $CURRENT_INODE ] && echo ftR_inode_ok
+( cat multilog_output_timing_ftR/*.s | diff multilog_test.txt - ) && echo ftR_data_ok
+
+[ `/bin/ls multilog_output_timing_ftr/*.s | /bin/grep -E '^multilog_output_timing_ftr\/@[0-9a-f]{24}\.s$' | wc -l` -eq 1 ] && echo ftR_num_ok
+TARGET_INODE=`ls -i multilog_output_timing_ftr/*.s | tail -1 | cut -d ' ' -f 1`
+CURRENT_INODE=`ls -i multilog_output_timing_ftr/current | cut -d ' ' -f 1`
+[ $TARGET_INODE -ne $CURRENT_INODE ] && echo ftr_inode_ok
+( cat multilog_output_timing_ftr/*.s multilog_output_timing_ftr/current | diff multilog_test.txt - ) && echo ftr_data_ok
+
+( cat multilog_test.txt ; sleep 3 ) | multilog ftR ./multilog_output_timing_ftR ftr ./multilog_output_timing_ftr &
+MULTILOG_PID=$!
+sleep 1
+exec 2>/dev/null
+kill -KILL $MULTILOG_PID
+echo a | multilog ftR ./multilog_output_timing_ftR ftr ./multilog_output_timing_ftr
+diff ./multilog_output_timing_ftR/*.u ./multilog_output_timing_ftr/*.u  && echo ftR_ftr_dot_u_diff_ok
+sleep 3
+exec 2>&1
+
 echo '--- multilog processor ---'
 ( echo '#!/bin/sh'; echo 'tee multilog_processor_test_out.txt' ) > multilog_processor.sh
 chmod +x multilog_processor.sh
