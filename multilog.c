@@ -93,6 +93,8 @@ struct cyclog {
   int flagselected;
   enum timestamp_kind_t flag_filename;
   enum logcreate_timing_t flag_logcreate_timing;
+  const char *postfix;
+  const char *prefix;
 } *c;
 int cnum;
 
@@ -101,29 +103,45 @@ stralloc fn = {0};
 /* Initialize a temporary variable for logfile-name comparison */
 void init_filename_cmp(const struct cyclog *d)
 {
+  int len = 0;
+  
+  if (d->prefix[0] != '\0') {
+    len += str_copy(&fn.s[len], d->prefix);
+  }
+
   switch (d->flag_filename) {
     case FILENAME_FLAG_ACCUSTAMP:
-      str_copy(fn.s, "9999999999.999999");
+      len += str_copy(&fn.s[len], "9999999999.999999");
       break;
     case FILENAME_FLAG_HUMAN_READABLE:
-      str_copy(fn.s, "99999999T999999.999999");
+      len += str_copy(&fn.s[len], "99999999T999999.999999");
       break;
     case FILENAME_FLAG_TAI64N: /* FALLTHROUGH */
     default:
-      fn.s[0] = '@';
-      fn.s[1] = 'z';
-      fn.s[2] = 0;
+      len += str_copy(&fn.s[len], "@z");
       break;
+  }
+  
+  if (d->postfix[0] != '\0') {
+    len += str_copy(&fn.s[len], d->postfix);
   }
 }
 
 /* Check format string in forward match */
 int checkname(const char* filter, const char* target)
 {
+  int is = 0;
   for (; *filter && *target ; ++filter, ++target) {
     switch (*filter) {
       case '9':
         if ('0' > *target || *target > '9')
+          return 0;
+        break;
+      case 'X':
+        is = ('0' <= *target && *target <= '9');
+        is = is || ('a' <= *target && *target <= 'f');
+        is = is || ('A' <= *target && *target <= 'F');
+        if (!is)
           return 0;
         break;
       default:
@@ -138,21 +156,39 @@ int checkname(const char* filter, const char* target)
 /* Check logfile-name in d->flag_filename */ 
 int check_filename(const struct cyclog *d, const direntry* x)
 {
+  int len = 0;
+  
+  if (d->prefix[0] != '\0') {
+    len += str_len(d->prefix);
+    if (str_diffn(d->prefix, x->d_name, len) != 0) {
+      return 0;
+    }
+  }
+
   switch (d->flag_filename) {
     case FILENAME_FLAG_ACCUSTAMP:
-      return checkname("9999999999.999999", x->d_name);
+      if (! checkname("9999999999.999999", &x->d_name[len])) {
+        return 0;
+      }
+      break;
     case FILENAME_FLAG_HUMAN_READABLE:
-      return checkname("99999999T999999.999999", x->d_name);
+      if (! checkname("99999999T999999.999999", &x->d_name[len])) {
+        return 0;
+      }
+      break;
     case FILENAME_FLAG_TAI64N: /* FALLTHROUGH */
     default:
-      if (x->d_name[0] == '@') {
-        if (str_len(x->d_name) >= 25) {
-          return 1;
-        }
+      if (! checkname("@XXXXXXXXXXXXXXXXXXXXXXXX", &x->d_name[len])) {
+        return 0;
       }
       break;
   }
-  return 0;
+  len += fmt_length(d->flag_filename);
+
+  if (d->postfix[0] != '\0') {
+    return (str_diffn(d->postfix, &x->d_name[len], str_len(d->postfix)) == 0);
+  }
+  return 1;
 }
 
 int filesfit(struct cyclog *d)
@@ -161,7 +197,8 @@ int filesfit(struct cyclog *d)
   direntry *x;
   int count;
   int i;
-  const unsigned int format_length = fmt_length(d->flag_filename);
+  const unsigned int format_length =
+    fmt_length(d->flag_filename) + str_len(d->prefix) + str_len(d->postfix);
 
   dir = opendir(".");
   if (!dir) return -1;
@@ -205,12 +242,24 @@ int filesfit(struct cyclog *d)
   return 0;
 }
 
+/* Set string of timestamp format with prefix and postfix. */
+int fmt_timestamp_with_xxfix(char s[], const struct cyclog *d)
+{
+  int len = 0;
+  if (d->prefix[0] != '\0')
+    len += str_copy(s, d->prefix);
+  len += fmt_timestamp(&s[len], d->flag_filename);
+  if (d->postfix[0] != '\0')
+    len += str_copy(&s[len], d->postfix);
+  return len;
+}
+
 void create_link(struct cyclog *d,const char *file,const char *code)
 {
   int fnlen;
 
   for (;;) {
-    fnlen = fmt_timestamp(fn.s, d->flag_filename);
+    fnlen = fmt_timestamp_with_xxfix(fn.s, d);
     fn.s[fnlen++] = '.';
     do {
       fn.s[fnlen++] = *code;
@@ -546,6 +595,9 @@ void c_init(char **script)
   const char *code_finished = "s";
   enum timestamp_kind_t flag_filename = FILENAME_FLAG_TAI64N;
   enum logcreate_timing_t flag_logcreate_timing = LOGCREATE_TIMING_LAST;
+  static const char *nulstr = "";  
+  const char *prefix = nulstr;
+  const char *postfix = nulstr;
 
   cnum = 0;
   for (i = 0;script[i];++i)
@@ -561,6 +613,8 @@ void c_init(char **script)
   size = 99999;
   flag_filename = FILENAME_FLAG_TAI64N;
   flag_logcreate_timing = LOGCREATE_TIMING_LAST;
+  prefix = nulstr;
+  postfix = nulstr;
 
   for (i = 0;script[i];++i)
     if (script[i][0] == 's') {
@@ -583,6 +637,12 @@ void c_init(char **script)
     else if (script[i][0] == 'f') {
       c_init_filename(script[i], &flag_filename, &flag_logcreate_timing);
     } 
+    else if (script[i][0] == 'P') {
+      prefix = &script[i][1];
+    } 
+    else if (script[i][0] == 'p') {
+      postfix = &script[i][1];
+    } 
     else if ((script[i][0] == '.') || (script[i][0] == '/')) {
       d->num = num;
       d->size = size;
@@ -591,11 +651,17 @@ void c_init(char **script)
       d->dir = script[i];
       d->flag_filename = flag_filename;
       d->flag_logcreate_timing = flag_logcreate_timing;
+      d->prefix = prefix;
+      d->postfix = postfix;
+      if (!stralloc_ready(&fn,str_len(prefix)+str_len(postfix)+TIMESTAMP+2))
+	strerr_die2sys(111,FATAL,"unable to allocate memory: ");
       buffer_init(&d->ss,c_write,d - c,d->buf,sizeof d->buf);
       restart(d);
       ++d;
       flag_filename = FILENAME_FLAG_TAI64N;
       flag_logcreate_timing = LOGCREATE_TIMING_LAST;
+      prefix = nulstr;
+      postfix = nulstr;
     }
 }
 

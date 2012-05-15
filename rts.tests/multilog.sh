@@ -95,3 +95,24 @@ chmod +x multilog_processor.sh
 cat multilog_test.txt | multilog !${PWD}/multilog_processor.sh ./multilog_processor_test
 diff multilog_processor_test/multilog_processor_test_out.txt `ls multilog_processor_test/@*` && echo processor_test_ok
 
+echo '--- multilog prefix/postfix ---'
+cat multilog_test_11.txt | multilog \
+  Pprefix_ ./xxfix-1 \
+  p_postfix ./xxfix-2 \
+  Pprefix_ p_postfix ./xxfix-3 \
+  Pprefix_ p_postfix ftr ./xxfix-tai64n-last \
+  Pprefix_ p_postfix ftR ./xxfix-tai64n-first \
+  Pprefix_ p_postfix fTr ./xxfix-accustamp-last \
+  Pprefix_ p_postfix fTR ./xxfix-accustamp-first \
+  Pprefix_ p_postfix fhr ./xxfix-humanreadable-last \
+  Pprefix_ p_postfix fhR ./xxfix-humanreadable-first
+[ `/bin/ls xxfix-1/*.s | /bin/grep -E '^xxfix-1/prefix_\@[0-9a-f]{24}\.s$'         | wc -l` -eq 9 ] && echo xxfix-1_ok
+[ `/bin/ls xxfix-2/*.s | /bin/grep -E '^xxfix-2/\@[0-9a-f]{24}_postfix\.s$'        | wc -l` -eq 9 ] && echo xxfix-2_ok
+[ `/bin/ls xxfix-3/*.s | /bin/grep -E '^xxfix-3/prefix_\@[0-9a-f]{24}_postfix\.s$' | wc -l` -eq 9 ] && echo xxfix-3_ok
+[ `/bin/ls xxfix-tai64n-last/*.s  | /bin/grep -E '^xxfix-tai64n-last/prefix_\@[0-9a-f]{24}_postfix\.s$'  | wc -l` -eq 9 ] && echo xxfix-tai64n-last_ok
+[ `/bin/ls xxfix-tai64n-first/*.s | /bin/grep -E '^xxfix-tai64n-first/prefix_\@[0-9a-f]{24}_postfix\.s$' | wc -l` -eq 9 ] && echo xxfix-tai64n-first_ok
+[ `/bin/ls xxfix-accustamp-last/*.s  | /bin/grep -E '^xxfix-accustamp-last/prefix_[0-9]{10}\.[0-9]{6}_postfix\.s$'  | wc -l` -eq 9 ] && echo xxfix-accustamp-last_ok
+[ `/bin/ls xxfix-accustamp-first/*.s | /bin/grep -E '^xxfix-accustamp-first/prefix_[0-9]{10}\.[0-9]{6}_postfix\.s$' | wc -l` -eq 9 ] && echo xxfix-accustamp-first_ok
+[ `/bin/ls xxfix-humanreadable-last/*.s  | /bin/grep -E '^xxfix-humanreadable-last/prefix_[0-9]{8}T[0-9]{6}\.[0-9]{6}_postfix\.s$'  | wc -l` -eq 9 ] && echo xxfix-humanreadable-last_ok
+[ `/bin/ls xxfix-humanreadable-first/*.s | /bin/grep -E '^xxfix-humanreadable-first/prefix_[0-9]{8}T[0-9]{6}\.[0-9]{6}_postfix\.s$' | wc -l` -eq 9 ] && echo xxfix-humanreadable-first_ok
+

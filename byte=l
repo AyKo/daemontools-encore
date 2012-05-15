@@ -11,6 +11,7 @@ scan_ulong.o
 scan_8long.o
 str_chr.o
 str_diff.o
+str_diffn.o
 str_len.o
 str_start.o
 str_cpy.o

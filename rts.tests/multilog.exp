@@ -54,3 +54,13 @@ ftr_data_ok
 ftR_ftr_dot_u_diff_ok
 --- multilog processor ---
 processor_test_ok
+--- multilog prefix/postfix ---
+xxfix-1_ok
+xxfix-2_ok
+xxfix-3_ok
+xxfix-tai64n-last_ok
+xxfix-tai64n-first_ok
+xxfix-accustamp-last_ok
+xxfix-accustamp-first_ok
+xxfix-humanreadable-last_ok
+xxfix-humanreadable-first_ok
