@@ -148,49 +148,6 @@ with the first * matching the timestamp.
 You can use
 .BR tai64nlocal (8)
 to convert these timestamps to human-readable form.
-.SH OUTPUT FILE 
-Three categories:
-  - Actions to change format of the log file name.
-  - Actions to change output timing of the log file.
-  - Actions to set prefix/postfix to the log file name.
-
-Can change the format of the log file name. The action 
-.TP
-.B ft
-output file names are set to
-.BR tai64n (8)
-style. For example, output file name is "@400000004fa18db302e8ca04.s".
-This option is the default.
-.TP
-.B fT
-output file names are set to accustamp style. For example,
-output file name is "1335987625.048810.s".
-.TP
-.B fh
-output file names are set to human-readable style (ISO 8601).
-For example, output file name is "20120403T044025.048810.s".
-.TP
-Can change the output timing of the log file. The action 
-.TP
-.B fr
-output log file last. (default)
-.TP
-.B fR
-output log file first. 
-Usually, multilog creates the log file after the current file fills, 
-but if this option is used, 
-the log file will be created as a hard link to the current file. 
-If the current file fills, 
-the current file will merely be erased only 
-and new current file and the log file of a hard link will be created. 
-.TP
-If you use the following action, set prefix/postfix to the log file name. The Action
-.TP
-.B P\fIprefix
-set prefix to the log file name.
-.TP
-.B p\fIpostix
-set postfix to the log file name.
 .SH AUTOMATICALLY ROTATED LOGS
 If
 .I dir
@@ -325,6 +282,47 @@ will then run it again. Note that running
 .I processor
 may block any program feeding input to
 .BR multilog .
+.SH FILE NAME OF OLD LOGS
+If you use following actions, change the format of the log file name. The action 
+.TP
+.B ft
+output file names are set to
+.BR tai64n (8)
+style. For example, output file name is "@400000004fa18db302e8ca04.s".
+This option is the default.
+.TP
+.B fT
+output file names are set to accustamp style. For example,
+output file name is "1335987625.048810.s".
+.TP
+.B fh
+output file names are set to human-readable style (ISO 8601).
+For example, output file name is "20120403T044025.048810.s".
+.TP
+If you use following actions, change the output timing of the log file. The action 
+.TP
+.B fr
+output log file last. (default)
+.TP
+.B fR
+output log file first. 
+Usually, multilog creates the log file after the current file fills, 
+but if this option is used, 
+the log file will be created as a hard link to the current file. 
+If the current file fills, 
+the current file will merely be erased only 
+and new current file and the log file of a hard link will be created. 
+.PP
+If you use the following options, you can add a string before and after
+the timestamp for the name of the old log files.
+.TP
+.B P\fIstring-before-timestamp
+add a string to before timestamp of old log file name.
+.TP
+.B p\fIstring-after-timestamp
+add a string to after timestamp of old log file name.
+.TP
+If you use the following options, change the suffix of old log file name. The Action
 .TP
 .B +\fIcode
 Changes the "safely written" code from
