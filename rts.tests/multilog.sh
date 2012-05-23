@@ -116,3 +116,7 @@ cat multilog_test_11.txt | multilog \
 [ `/bin/ls xxfix-humanreadable-last/*.s  | /bin/grep -E '^xxfix-humanreadable-last/prefix_[0-9]{8}T[0-9]{6}\.[0-9]{6}_postfix\.s$'  | wc -l` -eq 9 ] && echo xxfix-humanreadable-last_ok
 [ `/bin/ls xxfix-humanreadable-first/*.s | /bin/grep -E '^xxfix-humanreadable-first/prefix_[0-9]{8}T[0-9]{6}\.[0-9]{6}_postfix\.s$' | wc -l` -eq 9 ] && echo xxfix-humanreadable-first_ok
 
+echo '--- multilog "safely written" code'
+cat multilog_test_11.txt | multilog cOK ./safely_written
+[ `/bin/ls safely_written/ | /bin/grep -E '^\@[0-9a-f]{24}\.OK$' | wc -l` -eq 9 ] && echo safely written code ok
+
