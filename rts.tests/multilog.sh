@@ -120,3 +120,29 @@ echo '--- multilog "safely written" code'
 cat multilog_test_11.txt | multilog cOK ./safely_written
 [ `/bin/ls safely_written/ | /bin/grep -E '^\@[0-9a-f]{24}\.OK$' | wc -l` -eq 9 ] && echo safely written code ok
 
+echo '--- multilog "unsafely written" code'
+( cat multilog_test.txt ; sleep 1 ) | multilog cOK CNG ./unsafely_written &
+MULTILOG_PID=$!
+sleep 0.3
+exec 2>/dev/null
+kill -KILL $MULTILOG_PID
+sleep 1
+exec 2>&1
+echo a | multilog cOK CNG ./unsafely_written 
+[ `/bin/ls unsafely_written/*.NG | /bin/grep -E '^unsafely_written/\@[0-9a-f]{24}\.NG$' | wc -l` -eq 1 ] && echo unsafely written code rename ok
+
+( cat multilog_test_11.txt ; sleep 1 ) | multilog cOK CNG fR ./unsafely_written_2 &
+MULTILOG_PID=$!
+sleep 0.3
+exec 2>/dev/null
+kill -KILL $MULTILOG_PID
+sleep 1
+exec 2>&1
+INDOE1=`/bin/ls -i unsafely_written_2/*.OK | tail -1 | cut -d ' ' -f 1`
+INDOE2=`/bin/ls -i unsafely_written_2/current | cut -d ' ' -f 1`
+[ $INDOE1 -eq $INDOE2 ] && echo unsafely written code inode ok
+echo a | multilog cOK CNG fR ./unsafely_written_2 
+[ `/bin/ls unsafely_written_2/*.NG | /bin/grep -E '^unsafely_written_2/\@[0-9a-f]{24}\.NG$' | wc -l` -eq 1 ] && echo unsafely written code with fR rename ok with fR
+INDOE2=`/bin/ls -i unsafely_written_2/*.NG | cut -d ' ' -f 1`
+[ $INDOE1 -eq $INDOE2 ] && echo unsafely written code with fR inode ok
+

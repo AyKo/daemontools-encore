@@ -66,3 +66,8 @@ xxfix-humanreadable-last_ok
 xxfix-humanreadable-first_ok
 --- multilog "safely written" code
 safely written code ok
+--- multilog "unsafely written" code
+unsafely written code rename ok
+unsafely written code inode ok
+unsafely written code with fR rename ok with fR
+unsafely written code with fR inode ok

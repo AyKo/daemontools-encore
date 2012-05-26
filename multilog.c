@@ -87,6 +87,7 @@ struct cyclog {
   unsigned long size;
   const char *processor;
   const char *code_finished;
+  const char *code_unsafely;
   const char *dir;
   int fddir;
   int fdlock;
@@ -344,7 +345,7 @@ void fullcurrent(struct cyclog *d)
   while ((d->fdcurrent = open_append("current")) == -1)
     pause3("unable to create ",d->dir,"/current, pausing: ");
   if (d->flag_logcreate_timing == LOGCREATE_TIMING_FIRST) {
-    create_link(d, "current", "s");
+    create_link(d, "current", d->code_finished);
   }
   closeonexec(d->fdcurrent);
   d->bytes = 0;
@@ -449,12 +450,13 @@ void aftertreat_create_of_first(const struct cyclog *d, const struct stat* curre
     if (!x) break;
     if (check_filename(d, x)) {
       if (current_st->st_ino == x->d_ino) {
-        unsigned int len = str_len(x->d_name);
-        if ((len > 1) && (x->d_name[len-1] == 's')) { 
-          str_copy(fn.s, x->d_name);
-          fn.s[len-1] = 'u';
-          rename(x->d_name, fn.s);
-        }
+        int prelen = fmt_length(d->flag_filename);
+        if (!stralloc_ready(&fn, str_len(x->d_name) + 1))
+          strerr_die2sys(111,FATAL,"unable to allocate memory: ");
+        str_copy(fn.s, x->d_name);
+        fn.s[prelen] = '.';
+        str_copy(&fn.s[prelen + 1], d->code_unsafely);
+        rename(x->d_name, fn.s);
       }
     }
   }
@@ -524,10 +526,10 @@ void restart(struct cyclog *d)
   }
   else {
     unlink("processed");
-    finish(d,"previous","u");
+    finish(d,"previous", d->code_unsafely);
   }
 
-  finish(d,"current","u");
+  finish(d,"current", d->code_unsafely);
 
   fd = open_trunc("state");
   if (fd == -1)
@@ -593,6 +595,7 @@ void c_init(char **script)
   unsigned long num;
   unsigned long size;
   const char *code_finished = "s";
+  const char *code_unsafely = "u";
   enum timestamp_kind_t flag_filename = FILENAME_FLAG_TAI64N;
   enum logcreate_timing_t flag_logcreate_timing = LOGCREATE_TIMING_LAST;
   static const char *nulstr = "";  
@@ -634,6 +637,11 @@ void c_init(char **script)
       if (!stralloc_ready(&fn,str_len(code_finished)+TIMESTAMP+1))
 	strerr_die2sys(111,FATAL,"unable to allocate memory: ");
     }
+    else if (script[i][0] == 'C') {
+      code_unsafely = script[i] + 1;
+      if (!stralloc_ready(&fn,str_len(code_unsafely)+TIMESTAMP+1))
+	strerr_die2sys(111,FATAL,"unable to allocate memory: ");
+    }
     else if (script[i][0] == 'f') {
       c_init_filename(script[i], &flag_filename, &flag_logcreate_timing);
     } 
@@ -648,6 +656,7 @@ void c_init(char **script)
       d->size = size;
       d->processor = processor;
       d->code_finished = code_finished;
+      d->code_unsafely = code_unsafely;
       d->dir = script[i];
       d->flag_filename = flag_filename;
       d->flag_logcreate_timing = flag_logcreate_timing;
