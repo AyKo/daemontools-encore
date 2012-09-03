@@ -84,6 +84,7 @@ MULTILOG_PID=$!
 sleep 1
 exec 2>/dev/null
 kill -KILL $MULTILOG_PID
+while ( kill -0 $MULTILOG_PID 2> /dev/null) ; do sleep 0.1 ; done
 echo a | multilog ftR ./multilog_output_timing_ftR ftr ./multilog_output_timing_ftr
 diff ./multilog_output_timing_ftR/*.u ./multilog_output_timing_ftr/*.u  && echo ftR_ftr_dot_u_diff_ok
 sleep 3
@@ -126,6 +127,7 @@ MULTILOG_PID=$!
 sleep 0.3
 exec 2>/dev/null
 kill -KILL $MULTILOG_PID
+while ( kill -0 $MULTILOG_PID 2> /dev/null) ; do sleep 0.1 ; done
 sleep 1
 exec 2>&1
 echo a | multilog cOK CNG ./unsafely_written 
@@ -136,6 +138,7 @@ MULTILOG_PID=$!
 sleep 0.3
 exec 2>/dev/null
 kill -KILL $MULTILOG_PID
+while ( kill -0 $MULTILOG_PID 2> /dev/null) ; do sleep 0.1 ; done
 sleep 1
 exec 2>&1
 INDOE1=`/bin/ls -i unsafely_written_2/*.OK | tail -1 | cut -d ' ' -f 1`
