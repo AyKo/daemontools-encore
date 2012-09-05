@@ -498,7 +498,7 @@ void restart(struct cyclog *d)
       closeonexec(fd);
       if (d->flag_logcreate_timing == LOGCREATE_TIMING_FIRST) {
         if (st.st_nlink == 1)
-          create_link(d, "current", "s");
+          create_link(d, "current", d->code_finished);
       }
       d->fdcurrent = fd;
       d->bytes = st.st_size;
@@ -537,7 +537,7 @@ void restart(struct cyclog *d)
   close(fd);
   fd = open_append("current");
   if (d->flag_logcreate_timing == LOGCREATE_TIMING_FIRST) {
-    create_link(d, "current", "s");
+    create_link(d, "current", d->code_finished);
   }
   if (fd == -1)
     strerr_die4sys(111,FATAL,"unable to write to ",d->dir,"/current: ");
