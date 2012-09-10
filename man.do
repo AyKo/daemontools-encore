@@ -2,7 +2,7 @@ dependon \
 envdir.8 \
 envuidgid.8 \
 fghack.8 \
-multilog.8 \
+multilog-mod.8 \
 pgrphack.8 \
 readproctitle.8 \
 setlock.8 \

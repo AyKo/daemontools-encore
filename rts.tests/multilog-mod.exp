@@ -1,50 +1,50 @@
---- multilog prints nothing with no actions
+--- multilog-mod prints nothing with no actions
 0
---- multilog e prints to stderr
+--- multilog-mod e prints to stderr
 one
 two
 0
---- multilog inserts newline after partial final line
+--- multilog-mod inserts newline after partial final line
 one
 two
 0
---- multilog handles multiple actions
+--- multilog-mod handles multiple actions
 one
 one
 two
 two
 0
---- multilog handles wildcard -
+--- multilog-mod handles wildcard -
 0
---- multilog handles literal +
+--- multilog-mod handles literal +
 one
 0
---- multilog handles long lines for stderr
+--- multilog-mod handles long lines for stderr
 0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678
 0
 01234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789
 0
 01234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789...
 0
---- multilog handles status files
+--- multilog-mod handles status files
 0
 _1_two
 _997_
---- multilog t has the right format
+--- multilog-mod t has the right format
 @xxxxxxxxxxxxxxxxxxxxxxxx ONE
 @xxxxxxxxxxxxxxxxxxxxxxxx TWO
---- multilog T has the right format
+--- multilog-mod T has the right format
 xxxxxxxxxx.xxxxxx ONE
 xxxxxxxxxx.xxxxxx TWO
---- multilog h has the right format
+--- multilog-mod h has the right format
 YYYYMMDDThhmmss.SSSSSS ONE
 YYYYMMDDThhmmss.SSSSSS TWO
---- multilog output file name
+--- multilog-mod output file name
 default_ok
 ft_ok
 fT_ok
 fh_ok
---- multilog flag-value of timing to create a log file
+--- multilog-mod flag-value of timing to create a log file
 ftR_num_ok
 ftR_inode_ok
 ftR_data_ok
@@ -52,9 +52,9 @@ ftR_num_ok
 ftr_inode_ok
 ftr_data_ok
 ftR_ftr_dot_u_diff_ok
---- multilog processor ---
+--- multilog-mod processor ---
 processor_test_ok
---- multilog prefix/postfix ---
+--- multilog-mod prefix/postfix ---
 xxfix-1_ok
 xxfix-2_ok
 xxfix-3_ok
@@ -64,9 +64,9 @@ xxfix-accustamp-last_ok
 xxfix-accustamp-first_ok
 xxfix-humanreadable-last_ok
 xxfix-humanreadable-first_ok
---- multilog "safely written" code
+--- multilog-mod "safely written" code
 safely written code ok
---- multilog "unsafely written" code
+--- multilog-mod "unsafely written" code
 unsafely written code rename ok
 unsafely written code inode ok
 unsafely written code with fR rename ok with fR
