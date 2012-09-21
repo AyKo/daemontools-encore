@@ -51,19 +51,23 @@ echo '--- multilog-mod T has the right format'
 echo '--- multilog-mod h has the right format'
 ( echo ONE; echo TWO ) | multilog-mod h e 2>&1 | sed 's/^[0-9]\{8\}T[0-9]\{6\}\.[0-9]\{6\}/YYYYMMDDThhmmss.SSSSSS/g'
 
+echo '--- multilog-mod H has the right format'
+( echo ONE; echo TWO ) | multilog-mod H e 2>&1 | sed 's/^[0-9]\{15\}/YYMMDDhhmmssSSS/g'
+
 echo '--- multilog-mod output file name'
-/bin/rm -rf multilog_output_default multilog_output_fT multilog_output_fh multilog_output_ft
+/bin/rm -rf multilog_output_default multilog_output_fT multilog_output_fh multilog_output_ft multilog_output_fH
 ( for v in `seq 1 500`; do
 echo 0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678
 done ) > multilog_test.txt
 ( for v in `seq 1 11`; do
 cat multilog_test.txt
 done ) > multilog_test_11.txt
-cat multilog_test_11.txt | multilog-mod ./multilog_output_default fT ./multilog_output_fT fh ./multilog_output_fh ft ./multilog_output_ft
+cat multilog_test_11.txt | multilog-mod ./multilog_output_default fT ./multilog_output_fT fh ./multilog_output_fh ft ./multilog_output_ft fH ./multilog_output_fH
 [ `/bin/ls multilog_output_default/*.s | /bin/grep -E '^multilog_output_default\/@[0-9a-f]{24}\.s$' | wc -l` -eq 9 ]          && echo default_ok
 [ `/bin/ls multilog_output_ft/*.s      | /bin/grep -E '^multilog_output_ft\/@[0-9a-f]{24}\.s$' | wc -l` -eq 9 ]               && echo ft_ok
 [ `/bin/ls multilog_output_fT/*.s      | /bin/grep -E '^multilog_output_fT\/[0-9]{10}\.[0-9]{6}\.s$' | wc -l` -eq 9 ]         && echo fT_ok
 [ `/bin/ls multilog_output_fh/*.s      | /bin/grep -E '^multilog_output_fh\/[0-9]{8}T[0-9]{6}\.[0-9]{6}\.s$' | wc -l` -eq 9 ] && echo fh_ok
+[ `/bin/ls multilog_output_fH/*.s      | /bin/grep -E '^multilog_output_fH\/[0-9]{15}\.s$' | wc -l` -eq 9 ]                   && echo fH_ok
 
 echo '--- multilog-mod flag-value of timing to create a log file'
 cat multilog_test.txt | multilog-mod ftR ./multilog_output_timing_ftR ftr ./multilog_output_timing_ftr
@@ -106,7 +110,9 @@ cat multilog_test_11.txt | multilog-mod \
   Pprefix_ p_postfix fTr ./xxfix-accustamp-last \
   Pprefix_ p_postfix fTR ./xxfix-accustamp-first \
   Pprefix_ p_postfix fhr ./xxfix-humanreadable-last \
-  Pprefix_ p_postfix fhR ./xxfix-humanreadable-first
+  Pprefix_ p_postfix fhR ./xxfix-humanreadable-first \
+  Pprefix_ p_postfix fHr ./xxfix-humanreadable2-last \
+  Pprefix_ p_postfix fHR ./xxfix-humanreadable2-first
 [ `/bin/ls xxfix-1/*.s | /bin/grep -E '^xxfix-1/prefix_\@[0-9a-f]{24}\.s$'         | wc -l` -eq 9 ] && echo xxfix-1_ok
 [ `/bin/ls xxfix-2/*.s | /bin/grep -E '^xxfix-2/\@[0-9a-f]{24}_postfix\.s$'        | wc -l` -eq 9 ] && echo xxfix-2_ok
 [ `/bin/ls xxfix-3/*.s | /bin/grep -E '^xxfix-3/prefix_\@[0-9a-f]{24}_postfix\.s$' | wc -l` -eq 9 ] && echo xxfix-3_ok
@@ -114,8 +120,10 @@ cat multilog_test_11.txt | multilog-mod \
 [ `/bin/ls xxfix-tai64n-first/*.s | /bin/grep -E '^xxfix-tai64n-first/prefix_\@[0-9a-f]{24}_postfix\.s$' | wc -l` -eq 9 ] && echo xxfix-tai64n-first_ok
 [ `/bin/ls xxfix-accustamp-last/*.s  | /bin/grep -E '^xxfix-accustamp-last/prefix_[0-9]{10}\.[0-9]{6}_postfix\.s$'  | wc -l` -eq 9 ] && echo xxfix-accustamp-last_ok
 [ `/bin/ls xxfix-accustamp-first/*.s | /bin/grep -E '^xxfix-accustamp-first/prefix_[0-9]{10}\.[0-9]{6}_postfix\.s$' | wc -l` -eq 9 ] && echo xxfix-accustamp-first_ok
-[ `/bin/ls xxfix-humanreadable-last/*.s  | /bin/grep -E '^xxfix-humanreadable-last/prefix_[0-9]{8}T[0-9]{6}\.[0-9]{6}_postfix\.s$'  | wc -l` -eq 9 ] && echo xxfix-humanreadable-last_ok
+[ `/bin/ls xxfix-humanreadable-last/*.s | /bin/grep -E '^xxfix-humanreadable-last/prefix_[0-9]{8}T[0-9]{6}\.[0-9]{6}_postfix\.s$' | wc -l` -eq 9 ] && echo xxfix-humanreadable-last_ok
 [ `/bin/ls xxfix-humanreadable-first/*.s | /bin/grep -E '^xxfix-humanreadable-first/prefix_[0-9]{8}T[0-9]{6}\.[0-9]{6}_postfix\.s$' | wc -l` -eq 9 ] && echo xxfix-humanreadable-first_ok
+[ `/bin/ls xxfix-humanreadable2-last/*.s  | /bin/grep -E '^xxfix-humanreadable2-last/prefix_[0-9]{15}_postfix\.s$'  | wc -l` -eq 9 ] && echo xxfix-humanreadable2-last_ok
+[ `/bin/ls xxfix-humanreadable2-first/*.s | /bin/grep -E '^xxfix-humanreadable2-first/prefix_[0-9]{15}_postfix\.s$' | wc -l` -eq 9 ] && echo xxfix-humanreadable2-first_ok
 
 echo '--- multilog-mod "safely written" code'
 cat multilog_test_11.txt | multilog-mod cOK ./safely_written

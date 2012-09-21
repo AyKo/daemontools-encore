@@ -39,11 +39,15 @@ xxxxxxxxxx.xxxxxx TWO
 --- multilog-mod h has the right format
 YYYYMMDDThhmmss.SSSSSS ONE
 YYYYMMDDThhmmss.SSSSSS TWO
+--- multilog-mod H has the right format
+YYMMDDhhmmssSSS ONE
+YYMMDDhhmmssSSS TWO
 --- multilog-mod output file name
 default_ok
 ft_ok
 fT_ok
 fh_ok
+fH_ok
 --- multilog-mod flag-value of timing to create a log file
 ftR_num_ok
 ftR_inode_ok
@@ -64,6 +68,8 @@ xxfix-accustamp-last_ok
 xxfix-accustamp-first_ok
 xxfix-humanreadable-last_ok
 xxfix-humanreadable-first_ok
+xxfix-humanreadable2-last_ok
+xxfix-humanreadable2-first_ok
 --- multilog-mod "safely written" code
 safely written code ok
 --- multilog-mod "unsafely written" code

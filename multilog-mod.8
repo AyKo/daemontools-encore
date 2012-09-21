@@ -1,38 +1,38 @@
-.TH multilog 8
+.TH multilog-mod 8
 .SH NAME
-multilog \- reads a sequence of lines from stdin and appends selected lines to
+multilog-mod \- reads a sequence of lines from stdin and appends selected lines to
 any number of logs.
 .SH SYNOPSIS
-.B multilog
+.B multilog-mod
 .I script
 .SH DESCRIPTION
 .I script
 consists of any number of arguments. Each argument specifies one action. The
 actions are carried out in order for each line of input. Note that actions may
 contain shell metacharacters that need to be quoted when
-.B multilog
+.B multilog-mod
 is run from a shell. 
 
-.B multilog
+.B multilog-mod
 exits 0 when it sees the end of stdin. If stdin has a partial final line then
-.B multilog
+.B multilog-mod
 inserts a final newline. 
 
-.B multilog
+.B multilog-mod
 writes a message to stderr and exits 111, without reading any input, if it
 runs out of memory or if another
-.B multilog
+.B multilog-mod
 process is writing to one of the same automatically rotated logs.
 
 If
-.B multilog
+.B multilog-mod
 has trouble writing to disk after it starts reading input, it writes a message
 to stderr, pauses, and tries again, without losing any data. Note that this
 may block any program feeding input to
-.BR multilog .
+.BR multilog-mod .
 
 If
-.B multilog
+.B multilog-mod
 receives a TERM signal, it will read and process data until the next newline,
 and then exit, leaving stdin at the first byte of data it has not processed.
 .SH SELECTING LINES
@@ -79,7 +79,7 @@ The action
 deselects every line. 
 
 To save memory,
-.B multilog
+.B multilog-mod
 actually checks pattern against only the first 1000 characters of each line.
 .SH ALERTS
 The action 
@@ -128,12 +128,18 @@ inserts an human-readable style (ISO 8601) timestamp and a space in front of eac
 formatted as
 .IB YYYYMMDDThhmmss.SSSSSS .
 For example, the following prints "20120502T201812.123456".
+.TP
+.B H
+inserts an short human-readable style timestamp and a space in front of each line,
+formatted as
+.IB YYMMDDThhmmssSSS .
+For example, the following prints "120502201812123".
 .PP
 These are required to be the first action.
 .PP
 Patterns apply to the line after the timestamp is inserted. For example, if
 
-  multilog t '-*' '+* fatal: *' ./main
+  multilog-mod t '-*' '+* fatal: *' ./main
 
 reads the line
 
@@ -159,11 +165,11 @@ appends each selected line to a log named
 If
 .I dir
 does not exist,
-.B multilog
+.B multilog-mod
 creates it. 
 .PP
 Do not attempt to write to one log from two simultaneous
-.B multilog
+.B multilog-mod
 processes, or two actions in one process.
 
 The log format is as follows.
@@ -171,7 +177,7 @@ The log format is as follows.
 is a directory containing some number of old log files, a log file named
 .IR current ,
 and other files for
-.B multilog
+.B multilog-mod
 to keep track of its actions. Each old log file has a name beginning with @,
 continuing with a precise timestamp showing when the file was finished, and
 ending with one of the following codes:
@@ -188,11 +194,11 @@ Beware that NFS, async filesystems, and softupdates filesystems may discard
 files that were not safely written to disk before an outage.
 
 While
-.B multilog
+.B multilog-mod
 is running,
 .I current
 has mode 644. If
-.B multilog
+.B multilog-mod
 sees the end of stdin, it writes
 .I current
 safely to disk, and sets the mode of
@@ -202,7 +208,7 @@ to 744. When it restarts, it sets the mode of
 back to 644 and continues writing new lines. 
 
 When
-.B multilog
+.B multilog-mod
 decides that
 .I current
 is big enough, it writes
@@ -217,7 +223,7 @@ as an old log file.
 sets the maximum file size for subsequent
 .I dir
 actions.
-.B multilog
+.B multilog-mod
 will decide that
 .I current
 is big enough if
@@ -225,7 +231,7 @@ is big enough if
 has
 .I size
 bytes.
-.RB ( multilog
+.RB ( multilog-mod
 will also decide that
 .I current
 is big enough if it sees a newline within 2000 bytes of the maximum file size;
@@ -234,7 +240,7 @@ it tries to finish log files at line boundaries.)
 must be between 4096 and 16777215. The default maximum file size is 99999. 
 
 In versions 0.75 and above: If
-.B multilog
+.B multilog-mod
 receives an ALRM signal, it immediately decides that
 .I current
 is big enough, if
@@ -247,7 +253,7 @@ sets the number of log files for subsequent
 actions. After renaming
 .IR current ,
 if
-.B multilog
+.B multilog-mod
 sees
 .I num
 or more old log files, it removes the old log file with the smallest
@@ -261,14 +267,14 @@ sets a
 for subsequent
 .I dir
 actions.
-.B multilog
+.B multilog-mod
 will feed
 .I current
 through
 .I processor
 and save the output as an old log file instead of
 .IR current .
-.B multilog
+.B multilog-mod
 will also save any output that
 .I processor
 writes to descriptor 5, and make that output readable on descriptor 4 when it
@@ -277,11 +283,11 @@ runs
 on the next log file. For reliability,
 .I processor
 must exit nonzero if it has any trouble creating its output;
-.B multilog
+.B multilog-mod
 will then run it again. Note that running
 .I processor
 may block any program feeding input to
-.BR multilog .
+.BR multilog-mod .
 .SH FILE NAME OF OLD LOGS
 If you use following actions, change the format of the log file name. The action 
 .TP
@@ -299,6 +305,10 @@ output file name is "1335987625.048810.s".
 output file names are set to human-readable style (ISO 8601).
 For example, output file name is "20120403T044025.048810.s".
 .TP
+.B fH
+output file names are set to short human-readable style.
+For example, output file name is "120403044025048.s".
+.TP
 If you use following actions, change the output timing of the log file. The action 
 .TP
 .B fr
@@ -306,7 +316,7 @@ output log file last. (default)
 .TP
 .B fR
 output log file first. 
-Usually, multilog creates the log file after the current file fills, 
+Usually, multilog-mod creates the log file after the current file fills, 
 but if this option is used, 
 the log file will be created as a hard link to the current file. 
 If the current file fills, 

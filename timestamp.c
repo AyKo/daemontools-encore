@@ -52,8 +52,29 @@ int fmt_human_readable_stamp(char s[TIMESTAMP])
   /* YYYYMMDDThhmmss.SSSSSS     */
   /* 20120430T064033.232342     */
   len = sprintf(s, "%04d%02d%02dT%02d%02d%02d.%06ld",
-      nowtm.tm_year + 1900, nowtm.tm_mon, nowtm.tm_mday,
+      nowtm.tm_year + 1900, nowtm.tm_mon + 1, nowtm.tm_mday,
       nowtm.tm_hour, nowtm.tm_min, nowtm.tm_sec, now.tv_usec);
+
+  return len;
+}
+
+/* Timestamp format - Human readable No2 */
+int fmt_human_readable_2_stamp(char s[TIMESTAMP])
+{
+  int len;
+
+  struct timeval now;
+  struct tm nowtm;
+  
+  gettimeofday(&now,(struct timezone *) 0);
+  localtime_r(&now.tv_sec, &nowtm);
+
+  /* 01234567890123456789012345 */
+  /* YYYYMMDDhhmmss.SSS         */
+  /* 20120430064033.223         */
+  len = sprintf(s, "%02d%02d%02d%02d%02d%02d%03ld",
+      nowtm.tm_year % 100, nowtm.tm_mon + 1, nowtm.tm_mday,
+      nowtm.tm_hour, nowtm.tm_min, nowtm.tm_sec, now.tv_usec / 1000);
 
   return len;
 }
@@ -69,6 +90,9 @@ int fmt_timestamp(char s[TIMESTAMP], enum timestamp_kind_t kind)
     case FILENAME_FLAG_HUMAN_READABLE:
       len = fmt_human_readable_stamp(s);
       break;
+    case FILENAME_FLAG_HUMAN_READABLE_2:
+      len = fmt_human_readable_2_stamp(s);
+      break;
     case FILENAME_FLAG_TAI64N: /* FALLTHROUGH */
     default:
       len = fmt_tai64nstamp(s);
@@ -82,12 +106,13 @@ int fmt_length(enum timestamp_kind_t kind)
 {
   static const int len[FILENAME_FLAG_MAX_] = {
     /*                                    0123456789012345678901234 */
-    25, /* FILENAME_FLAG_TAI64N         : @400000004f9ef20e283a0ebc */
-    17, /* FILENAME_FLAG_ACCUSTAMP      : 1335817091.063697         */
-    22, /* FILENAME_FLAG_HUMAN_READABLE : 20120401T055440.123155    */
+    25, /* FILENAME_FLAG_TAI64N           : @400000004f9ef20e283a0ebc */
+    17, /* FILENAME_FLAG_ACCUSTAMP        : 1335817091.063697         */
+    22, /* FILENAME_FLAG_HUMAN_READABLE   : 20120401T055440.123155    */
+    15, /* FILENAME_FLAG_HUMAN_READABLE_2 : 120401055440123         */
   };
 
-  if (FILENAME_FLAG_TAI64N <= kind && kind <= FILENAME_FLAG_HUMAN_READABLE) {
+  if (FILENAME_FLAG_TAI64N <= kind && kind <= FILENAME_FLAG_HUMAN_READABLE_2) {
     return len[kind];
   }
   return len[FILENAME_FLAG_TAI64N];

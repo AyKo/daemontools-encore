@@ -117,6 +117,9 @@ void init_filename_cmp(const struct cyclog *d)
     case FILENAME_FLAG_HUMAN_READABLE:
       len += str_copy(&fn.s[len], "99999999T999999.999999");
       break;
+    case FILENAME_FLAG_HUMAN_READABLE_2:
+      len += str_copy(&fn.s[len], "999999999999999");
+      break;
     case FILENAME_FLAG_TAI64N: /* FALLTHROUGH */
     default:
       len += str_copy(&fn.s[len], "@z");
@@ -174,6 +177,11 @@ int check_filename(const struct cyclog *d, const direntry* x)
       break;
     case FILENAME_FLAG_HUMAN_READABLE:
       if (! checkname("99999999T999999.999999", &x->d_name[len])) {
+        return 0;
+      }
+      break;
+    case FILENAME_FLAG_HUMAN_READABLE_2:
+      if (! checkname("999999999999999", &x->d_name[len])) {
         return 0;
       }
       break;
@@ -554,6 +562,7 @@ void restart(struct cyclog *d)
  * t:tai64n stamp (Default)
  * T:accustamp
  * h:human-readable stamp (YYYYMMDD-HHMMSS.ssssss)
+ * H:human-readable-2 stamp (YYYYMMDDHHMMSSsss)
  * <Generate timing flag>
  * r:generate logfile last
  * R:generate logfile first */
@@ -570,6 +579,9 @@ void c_init_filename(
         break;
       case 'h':
         *flag_filename = FILENAME_FLAG_HUMAN_READABLE;
+        break;
+      case 'H':
+        *flag_filename = FILENAME_FLAG_HUMAN_READABLE_2;
         break;
       case 't':
         *flag_filename = FILENAME_FLAG_TAI64N;
@@ -751,7 +763,7 @@ void doit(char **script)
 
   flagtimestamp = 0;
   if (script[0])
-    if (script[0][0] == 't' || script[0][0] == 'T' || script[0][0] == 'h')
+    if (script[0][0] == 't' || script[0][0] == 'T' || script[0][0] == 'h' || script[0][0] == 'H')
       flagtimestamp = script[0][0];
 
   for (i = 0;i <= 1000;++i) line[i] = '\n';
@@ -776,6 +788,9 @@ void doit(char **script)
               break;
             case 'h':
               linelen = fmt_human_readable_stamp(line);
+              break;
+            case 'H':
+              linelen = fmt_human_readable_2_stamp(line);
               break;
             case 't':   /* FALLTHROUGH */
             default:
