@@ -446,6 +446,8 @@ void aftertreat_create_of_first(const struct cyclog *d, const struct stat* curre
 {
   DIR *dir;
   direntry *x;
+  int len_unsafe = str_len(d->code_unsafely);
+  int len_finish = str_len(d->code_finished);
 
   if (current_st->st_nlink <= 1)
     return;
@@ -458,10 +460,12 @@ void aftertreat_create_of_first(const struct cyclog *d, const struct stat* curre
     if (!x) break;
     if (check_filename(d, x)) {
       if (current_st->st_ino == x->d_ino) {
-        int prelen = fmt_length(d->flag_filename) + str_len(d->prefix) + str_len(d->postfix);;
-        if (!stralloc_ready(&fn, str_len(x->d_name) + 1))
+        int prelen = fmt_length(d->flag_filename) + str_len(d->prefix) + str_len(d->postfix);
+        int filelen_max = prelen + 1 + (len_unsafe > len_finish) ? len_unsafe : len_finish;
+        if (!stralloc_ready(&fn, filelen_max)) {
           strerr_die2sys(111,FATAL,"unable to allocate memory: ");
-        fmt_timestamp_with_xxfix(fn.s, d);
+        }
+        str_copy(fn.s, x->d_name);
         fn.s[prelen] = '.';
         str_copy(&fn.s[prelen + 1], d->code_unsafely);
         rename(x->d_name, fn.s);
